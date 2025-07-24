@@ -1,7 +1,14 @@
+from strategies.sma_crossover import SMACrossoverStrategy
+from core.broker import Broker
+from core.backtester import Backtester
 import pandas as pd
 
-# Load the data
-df = pd.read_csv('data/AAPL.csv', index_col='Date', parse_dates=True)
+data = pd.read_csv("data/sp500/AAPL.csv", parse_dates=['Date'], index_col='Date')
 
-# Show the first few rows
-print(df.head())
+strategy = SMACrossoverStrategy(symbol="AAPL")
+broker = Broker(initial_cash=100000)
+backtester = Backtester(data, strategy, broker)
+
+backtester.run()
+
+print("Final Portfolio Value:", broker.portfolio_value())
