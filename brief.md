@@ -2,92 +2,124 @@
 
 ---
 
-### 1. Project Overview  
-Design and implement a modular, production‑style backtesting framework in Python to simulate, evaluate, and visualize systematic trading strategies—starting with a 50/200 SMA crossover—and scalable to the entire S&P 500 universe.
+### 1. Project Overview
+
+Design and implement a production‑style, modular backtesting framework in Python for systematic trading strategies,starting with a 50/200 SMA crossover, and scalable to the entire S\&P 500 universe. The framework should support realistic order simulation, performance analytics, and clear visual reporting, while being easy to extend, test, and deploy.
 
 ---
 
-### 2. Objectives  
-- **Core Engine**: Simulate trades with realistic order execution, position sizing, cash management, and PnL tracking.  
-- **Modularity**: Separate layers for data ingestion, strategy logic, execution (“broker”), performance metrics, and visualization—so you can plug in new strategies or asset classes with minimal changes.  
-- **Scalability**: Download full S&P 500 historical OHLCV data, run the backtester in batch mode, and aggregate performance across tickers.  
-- **Reporting**: Compute key performance metrics (CAGR, Sharpe, max drawdown) and produce clear equity‑curve and signal‑overlay plots for each strategy/asset.  
+### 2. Objectives
+
+* **Core Engine**: Accurately simulate order execution, PnL tracking, position sizing, cash management, transaction costs, and slippage.
+* **Modularity & Extensibility**: Decouple data ingestion, strategy logic, execution (broker), performance metrics, and visualization layers. Enable plugging in new strategies (momentum, mean‑reversion, ML‑based) or asset classes (equities, ETFs) with minimal code changes.
+* **Scalability & Performance**: Batch‑backtest across the full S\&P 500 universe (daily OHLCV) in under 30 minutes, with hooks for parallelism or distributed execution.
+* **Reliability & Reproducibility**: Include unit tests, continuous integration (CI) pipeline, logging, exception handling, and a containerized environment (Docker) to ensure consistent results.
+* **Reporting & Insights**: Generate comprehensive performance reports—equity curves, drawdowns, key risk metrics—plus customizable dashboards for deeper analysis.
 
 ---
 
-### 3. Scope & Features  
+### 3. Scope & Feature Breakdown
 
-| Layer            | Components & Responsibilities                                                                                                                                               |
-|------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| **Data**         | • Scrape/ingest S&P 500 ticker list<br>• Download OHLCV via `yfinance`<br>• Store each `<SYMBOL>.csv` in `data/`                                                              |
-| **Strategies**   | • Implement `SMACrossoverStrategy` (50/200 SMA) with clear API: `generate_signals(data) → List[“buy”/“sell”/None]`<br>• Template for adding new strategies (momentum, mean‑reversion, ML‑based) |
-| **Broker**       | • `Broker` class: manage cash, positions, order execution at close price<br>• Support fixed‐size or dynamic sizing<br>• Maintain `history` of date, cash, value for time series  |
-| **Backtester**   | • Loop over time index per symbol<br>• Apply strategy signals to `Broker`<br>• Update portfolio daily<br>• Export raw trade logs                                                          |
-| **Metrics**      | • Compute portfolio returns series<br>• CAGR, annualized volatility, Sharpe ratio<br>• Maximum drawdown and recovery time<br>• Optional: Calmar ratio, Sortino, CVaR        |
-| **Visualization**| • Equity curve vs. buy‑and‑hold benchmark<br>• Price chart with signal markers (buy/sell arrows)<br>• Drawdown chart<br>• Parameter‑sensitivity grid plots                        |
+| Layer    | Components & Responsibilities                   |
+| -------- | ----------------------------------------------- |
+| **Data** | - Fetch S\&P 500 tickers (SEC or Wikipedia API) |
+
+* Download OHLCV (daily) via `yfinance` or `Alpha Vantage`
+* Handle splits, dividends, corporate actions
+* Cache raw CSVs in `data/` and provide a unified loader                                      |
+  \| **Strategies**   | - `SMACrossoverStrategy` (50/200 SMA) with API:
+
+  ```python
+  class SMACrossoverStrategy(BaseStrategy):  
+      def generate_signals(self, price: pd.DataFrame) -> pd.Series:  
+          ...  
+  ```
+* Abstract `BaseStrategy` template for new implementations (momentum, mean‑reversion, ML)                                                                                                    |
+  \| **Broker**       | - `Broker` class for cash, positions, and order execution at next open/close
+* Configurable transaction cost (fixed, basis points) and slippage models
+* Support static & dynamic position sizing
+* Maintain trade logs and time‑series of portfolio value & cash balance               |
+  \| **Backtester**   | - Core `Backtester` orchestrates:
+
+  1. Iterating over timestamps per symbol
+  2. Applying strategy signals to `Broker`
+  3. Updating portfolio & PnL
+  4. Exporting raw trade logs & summary statistics                                                          |
+     \| **Metrics**      | - Compute portfolio return series and benchmark comparison
+* Key metrics: CAGR, annualized volatility, Sharpe, Sortino, Calmar, max drawdown & recovery
+* Tail‑risk measures: Conditional VaR (CVaR), drawdown duration                                                 |
+  \| **Visualization**| - Equity curve vs. buy‑and‑hold
+* Price chart with annotated buy/sell markers
+* Drawdown chart and rolling statistics
+* Parameter‑sensitivity grid for optimizing look‑back windows                                                          |
+  \| **Infrastructure** | - Unit tests with `pytest` covering each module
+* CI setup (GitHub Actions) for linting, testing, and build
+* Dockerfile for environment consistency
+* Logging & error handling with configurable verbosity                                     |
 
 ---
 
-### 4. Deliverables  
-1. **GitHub repository** organized as:  
-   ```text
-   quant-backtester/
-   ├── data/
-   │   └── download_sp500.py
-   ├── strategies/
-   │   └── sma_crossover.py
-   ├── core/
-   │   ├── broker.py
-   │   ├── backtester.py
-   │   └── metrics.py
-   ├── visualize/
-   │   └── plot.py
-   ├── main.py
-   ├── requirements.txt
-   └── README.md
+### 4. Folder Structure & Deliverables
 
-README.md with:
+```
+quant-backtester/
+├── data/
+│   └── download_sp500.py              # Ticker list + data ingestion
+├── strategies/
+│   ├── base.py                        # Abstract BaseStrategy
+│   └── sma_crossover.py               # SMACrossoverStrategy
+├── core/
+│   ├── broker.py
+│   ├── backtester.py
+│   ├── metrics.py
+│   └── exceptions.py                  # Custom error types
+├── visualize/
+│   └── plot.py
+├── tests/
+│   ├── test_data.py
+│   ├── test_strategy.py
+│   ├── test_broker.py
+│   └── test_backtester.py
+├── Dockerfile
+├── .github/workflows/ci.yml           # CI configuration
+├── requirements.txt
+├── README.md
+└── main.py                            # CLI entry point
+```
 
-Project description & setup instructions
+---
 
-How to run full S&P 500 batch backtest
+### 5. Timeline & Milestones
 
-Examples of extending to new strategies
+| Week | Milestone                                                                                 |
+| ---- | ----------------------------------------------------------------------------------------- |
+| 1    | Environment setup, Docker + CI, data ingestion script, initial CSV loader and cache tests |
+| 2    | Implement `Broker` & `BaseStrategy`; test order execution and cash/position updates       |
+| 3    | Develop `Backtester`; run AAPL demo; integrate basic logging and exception handling       |
+| 4    | Build `metrics.py`; compute risk metrics (Sharpe, drawdown); write unit tests             |
+| 5    | Full S\&P 500 batch backtesting with performance optimizations (multiprocessing hooks)    |
+| 6    | Visualization module; generate equity/drawdown plots; update README with usage examples   |
+| 7    | Finalize documentation; add corporate actions handling; polish slide deck (optional)      |
 
-Sample outputs:
+---
 
-Equity curve and metrics for the SMA strategy on AAPL
+### 6. Technology & Libraries
 
-Aggregated performance summary for top 100 S&P 500 stocks
+* **Language**: Python 3.9+
+* **Data & Computation**: `pandas`, `numpy`, `scipy`
+* **Data APIs**: `yfinance`, `Alpha Vantage` (optional)
+* **Visualization**: `matplotlib`
+* **Testing & CI**: `pytest`, `flake8`, GitHub Actions
+* **Containerization**: Docker
 
-Presentation slide deck (optional) summarizing approach, results, and next steps.
+---
 
-5. Timeline & Milestones
-Week	Milestone
-1	Environment setup, data download script, sample AAPL backtest
-2	Implement Broker & Backtester modules; run AAPL simulation
-3	Build metrics.py, compute Sharpe/CAGR/DD, validate results
-4	Full S&P 500 data ingestion & batch backtesting; optimize for performance
-5	Develop visualize/plot.py for charts; integrate into main.py
-6	Documentation (README, code comments) & optional slide deck
+### 7. Success Criteria
 
-6. Technology & Libraries
-Language: Python 3.9+
+* **Correctness**: Backtester replicates hand‑calculated trades and PnL.
+* **Performance**: Completes full S\&P 500 backtest in <30 minutes (on commodity hardware).
+* **Quality**: 90%+ unit test coverage; clear logging; no uncaught exceptions.
+* **Usability**: Easy-to-follow README; Docker build passes; CI green.
+* **Extensibility**: Can add a new strategy or asset class with <5 lines of code changes.
 
-Data: pandas, yfinance
-
-Computations: numpy, scipy (for advanced metrics)
-
-Visualization: matplotlib
-
-Environment: Virtualenv or Conda, requirements.txt for reproducibility
-
-7. Success Criteria
-Functionality: Backtester correctly simulates buy/sell signals and matches hand‑calculated trades.
-
-Performance: Handles 500 tickers in under 30 minutes (with opportunity for multiprocessing).
-
-Clarity: Code is modular and well‑documented; README clearly guides a new user.
-
-Insight: Equity curves and metrics accurately reflect strategy behavior; easy to swap in new strategies.
-
+---
