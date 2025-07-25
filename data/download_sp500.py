@@ -12,14 +12,14 @@ def get_sp500_tickers():
     df = pd.read_html(url)[0]
     return df['Symbol'].str.replace('.', '-', regex=False).tolist()
 
-def download_and_save(symbol, start="2015-01-01", end="2024-01-01"):
+def download_and_save(symbol, start="2000-01-01"):
     try:
-        df = yf.download(symbol, start=start, end=end)
+        df = yf.download(symbol, start=start)
         if df.empty:
             print(f"No data for {symbol}")
             return
 
-        path = os.path.join(DATA_DIR, f"{symbol}.csv")
+        path = os.path.join(DATA_DIR, f"sp500/{symbol}.csv")
         df.to_csv(path)
         print(f"{symbol} saved")
         time.sleep(1)  # Avoid rate limits
